@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Toast</title>
+  <!-- Custom Style -->
+  <link href="/common/toast.css" rel="stylesheet">
+</head>
+<body th:fragment="body">
+
+<!-- Toast Container -->
+<div class="toast-container">
+  <!-- Success Toast từ Model -->
+  <div class="toast success show" th:if="${messageType} == 'success'">
+    <i class="fa fa-check-circle toast-icon"></i>
+    <div class="toast-content">
+      <div class="toast-title"><strong>Thành Công</strong></div>
+      <div class="toast-message" th:text="${message}"></div>
+    </div>
+<!--    <button class="close-btn" aria-label="Đóng">&times;</button>-->
+  </div>
+
+  <!-- Error Toast từ Model -->
+  <div class="toast error show" th:if="${messageType} == 'error'">
+    <i class="fa fa-times-circle toast-icon"></i>
+    <div class="toast-content">
+      <div class="toast-title"><strong>Lỗi</strong></div>
+      <div class="toast-message" th:text="${message}"></div>
+    </div>
+<!--    <button class="close-btn" aria-label="Đóng">&times;</button>-->
+  </div>
+
+  <!-- Session Success Toast -->
+  <div class="toast success show" th:if="${session.SUCCESS_MESSAGE}">
+    <i class="fa fa-check-circle toast-icon"></i>
+    <div class="toast-content">
+      <div class="toast-title"><strong>Thành Công</strong></div>
+      <div class="toast-message" th:text="${session.SUCCESS_MESSAGE}"></div>
+    </div>
+<!--    <button class="close-btn" aria-label="Đóng">&times;</button>-->
+  </div>
+
+  <!-- Session Error Toast -->
+  <div class="toast error show" th:if="${session.ERROR_MESSAGE}">
+    <i class="fa fa-times-circle toast-icon"></i>
+    <div class="toast-content">
+      <div class="toast-title"><strong>Lỗi</strong></div>
+      <div class="toast-message" th:text="${session.ERROR_MESSAGE}"></div>
+    </div>
+<!--    <button class="close-btn" aria-label="Đóng">&times;</button>-->
+  </div>
+  
+  <!-- Template toast dùng cho JavaScript -->
+  <div id="toast-template" class="toast hidden">
+    <i class="toast-icon"></i>
+    <div class="toast-content">
+      <div class="toast-title"></div>
+      <div class="toast-message"></div>
+    </div>
+<!--    <button class="close-btn" aria-label="Đóng">&times;</button>-->
+  </div>
+</div>
+
+<script th:inline="javascript">
+  // Global function để đóng toast với animation
+  function closeToastWithAnimation(toastElement) {
+    if (!toastElement) return;
+    
+    toastElement.classList.add('fade-out');
+    
+    // Đợi animation hoàn thành rồi mới remove element
+    setTimeout(() => {
+      if (toastElement.parentNode) {
+        toastElement.remove();
+      }
+    }, 300); // 300ms = thời gian animation fade-out
+  }
+  
+  // Global function để clear session messages
+  function clearSessionMessages() {
+    setTimeout(() => {
+      fetch('/api/clear-session?key=SUCCESS_MESSAGE', { method: 'POST' });
+      fetch('/api/clear-session?key=ERROR_MESSAGE', { method: 'POST' });
+    }, 300);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    
+    // Đặt timeout cho toast hiện tại với hiệu ứng fade-out
+    setTimeout(() => {
+      document.querySelectorAll('.toast.show').forEach(toastElement => {
+        closeToastWithAnimation(toastElement);
+      });
+      
+      // Clear session messages sau khi animation hoàn thành
+      clearSessionMessages();
+    }, 4000);
+    
+    // Thêm event listener cho nút đóng toast với hiệu ứng
+    document.querySelectorAll('.close-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const toastElement = this.closest('.toast');
+        closeToastWithAnimation(toastElement);
+      });
+    });
+  });
+  
+  // Function để tạo toast mới từ JavaScript - với option clear session
+  function showToast(type, title, message, clearSession = false) {
+    const container = document.querySelector('.toast-container');
+    const template = document.getElementById('toast-template');
+    const newToast = template.cloneNode(true);
+    
+    // Setup toast
+    newToast.id = '';
+    newToast.classList.remove('hidden');
+    newToast.classList.add(type, 'show');
+    
+    // Set icon
+    const icon = newToast.querySelector('.toast-icon');
+    if (type === 'success') {
+      icon.className = 'fa fa-check-circle toast-icon';
+    } else if (type === 'error') {
+      icon.className = 'fa fa-times-circle toast-icon';
+    }
+    
+    // Set content
+    newToast.querySelector('.toast-title').innerHTML = '<strong>' + title + '</strong>';
+    newToast.querySelector('.toast-message').textContent = message;
+    
+    // Add close event
+    newToast.querySelector('.close-btn').addEventListener('click', function() {
+      closeToastWithAnimation(newToast);
+    });
+    
+    // Add to container
+    container.appendChild(newToast);
+    
+    // Clear session messages if requested
+    if (clearSession) {
+      clearSessionMessages();
+    }
+    
+    // Auto close after 4 seconds
+    setTimeout(() => {
+      if (newToast.parentNode) {
+        closeToastWithAnimation(newToast);
+      }
+    }, 4000);
+    
+    // Return toast element để có thể sử dụng với closeToastWithAnimation nếu cần
+    return newToast;
+  }
+</script>
+
+</body>
+</html>
